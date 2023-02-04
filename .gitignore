@@ -71,3 +71,5 @@ modules/
 # Add by myself
 Win32/
 Win64/
+*.rar
+*.zip

@@ -92,10 +92,10 @@
         <DCC_DebugInformation>0</DCC_DebugInformation>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2_Win32)'!=''">
-        <VerInfo_Build>3</VerInfo_Build>
+        <VerInfo_Build>4</VerInfo_Build>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_AutoIncVersion>true</VerInfo_AutoIncVersion>
-        <VerInfo_Keys>CompanyName=Hands &amp; Mind;FileDescription=;FileVersion=1.0.0.3;InternalName=;LegalCopyright=Evgeniy Tyavkin;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0;Comments=Приложение для обработки файлов от ОСФР с целью поиска совпадений с базой АСП</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=Hands &amp; Mind;FileDescription=;FileVersion=1.0.0.4;InternalName=;LegalCopyright=Evgeniy Tyavkin;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0;Comments=Приложение для обработки файлов от ОСФР с целью поиска совпадений с базой АСП</VerInfo_Keys>
     </PropertyGroup>
     <ItemGroup>
         <DelphiCompile Include="$(MainSource)">

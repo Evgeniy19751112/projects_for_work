@@ -6,7 +6,7 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
   Vcl.StdCtrls, Vcl.CheckLst, Data.DB, Data.Win.ADODB, Vcl.ExtCtrls,
-  Vcl.Grids, Vcl.DBGrids, Vcl.Menus, System.IniFiles, Vcl.AppEvnts;
+  Vcl.Grids, Vcl.DBGrids, Vcl.Menus, System.IniFiles, UnitQuery, Vcl.AppEvnts;
 
 type
   TfrmCPD = class(TForm)
@@ -30,6 +30,11 @@ type
     timCallThread: TTimer;
     N1: TMenuItem;
     N2: TMenuItem;
+    grpOptions: TGroupBox;
+    chkVisual: TCheckBox;
+    chkUpdate: TCheckBox;
+    txtThreadsMax: TLabeledEdit;
+    txtUpdateInterval: TLabeledEdit;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure cmdConnectClick(Sender: TObject);
@@ -37,8 +42,11 @@ type
     procedure cmdGetDataClick(Sender: TObject);
     procedure cmdConnectExcelClick(Sender: TObject);
     procedure PopupItemClick(Sender: TObject);
+    procedure UpdateSheetAfterQuery(Sender: TObject);
     procedure ApplicationEvents1Exception(Sender: TObject; E: Exception);
     procedure timCallThreadTimer(Sender: TObject);
+    procedure txtThreadsMaxChange(Sender: TObject);
+    procedure txtUpdateIntervalChange(Sender: TObject);
   private
     FsHostName: string;       // Хост
     FsLogin: string;          // Логин
@@ -50,6 +58,9 @@ type
     FFirstLine: TStringList;  // Первая строка из таблицы (вместо кеша)
     FColumns: array [0..5] of Integer;  // Индексированные номера полей в Excel
     FlstTables: TStringList;  // Списоб баз данных для одновременной обработки
+    FThreadsRunning: ShortInt; // Кол-во запущенных потоков
+    FThreadsMaximum: ShortInt; // Максимум запущенных потоков
+    FUpdateInterval: Integer;  // Интервал (кол-во строк) перед обновлением
     procedure SetLog(const Value: string);
     procedure MyConnect;      // Подключение к БД (в т.ч. создание)
     procedure GetParams;      // Грузим из реестра параметры
@@ -153,6 +164,24 @@ begin
   if _SQLC.Connected then
   begin
     log := 'Начало обработки списка';
+    FAppExcel.DisplayAlerts := False;
+
+    // Подготавливаем рабочее окружение
+    FAppExcel.Visible := chkVisual.Checked;
+    cmdConnect.Enabled := False;
+    cmdGetData.Enabled := False;
+    cmdConnectExcel.Enabled := False;
+    if not chkVisual.Checked then
+    begin
+      FAppExcel.ScreenUpdating := False;
+      FUpdateInterval := 0;
+      chkUpdate.Checked := False;
+    end;
+    FAppExcel.ScreenUpdating := chkUpdate.Checked and (FUpdateInterval = 0);
+    txtThreadsMax.Enabled := False;
+    txtUpdateInterval.Enabled := False;
+    chkVisual.Enabled := False;
+    chkUpdate.Enabled := False;
 
     // Для индексации заполним массив (для повышения скорости работы)
     for j := 0 to 5 do
@@ -187,6 +216,8 @@ begin
   FsHostName := '';
   FsLogin := '';
   FsPassword := '';
+  FThreadsMaximum := 1;
+  FUpdateInterval := 100;
   GetParams;
   MozhnoZayti(nil);
   FAppExcel := Null;
@@ -239,11 +270,21 @@ begin
     end;
     s := Trim(s);
     r.WriteString('DB_Names', s);
+    r.WriteInteger('ThreadsMaximum', FThreadsMaximum);
+    r.WriteInteger('UpdateInterval', FUpdateInterval);
+    r.WriteBool(chkVisual.Name, chkVisual.Checked);
+    r.WriteBool(chkUpdate.Name, chkUpdate.Checked);
   finally
     r.Free;
   end;
 
   // Закрыть все соединения
+  try
+    FAppExcel.Visible := True;
+    FAppExcel.ScreenUpdating := True;
+    FAppExcel.DisplayAlerts := True;
+  except
+  end;
   FSheet := Null;
   FWB := Null;
   FAppExcel := Null;
@@ -301,6 +342,20 @@ begin
     FsFolderName := Trim(r.ReadString('FolderName'));
     if FsFolderName = '' then
       FsFolderName := ExtractFilePath(Application.ExeName);
+
+    if r.ValueExists('ThreadsMaximum') then
+      FThreadsMaximum := r.ReadInteger('ThreadsMaximum');
+    txtThreadsMax.Text := IntToStr(FThreadsMaximum);
+
+    if r.ValueExists('UpdateInterval') then
+      FUpdateInterval := r.ReadInteger('UpdateInterval');
+    txtUpdateInterval.Text := IntToStr(FUpdateInterval);
+
+    if r.ValueExists(chkVisual.Name) then
+      chkVisual.Checked := r.ReadBool(chkVisual.Name);
+
+    if r.ValueExists(chkUpdate.Name) then
+      chkUpdate.Checked := r.ReadBool(chkUpdate.Name);
   finally
     r.Free;
   end;
@@ -524,87 +579,49 @@ end;
 
 procedure TfrmCPD.timCallThreadTimer(Sender: TObject);
 var
-  j, iRecsT, iRecsQ: Integer;
-  sFa1, sFa2, sIm1, sIm2, sOt1, sOt2: string;
-  sDR1, sDR2, sMsg, sSNILS: string;
+  j, iRecs: Integer;
+  sSNILS: string;
+  b: Boolean;
 begin
-  // Запускаем и ждём обработки строки
+  // Запускаем потоки и ждём обработки строки
+  if (FThreadsMaximum > 0) and (FThreadsRunning >= FThreadsMaximum) then
+    Exit;  // Слишком много потоков
+
   timCallThread.Enabled := False;
   j := timCallThread.Tag;
   if j < 2 then
   begin
     log := 'Конец обработки списка';
+    txtUpdateIntervalChange(nil);
+    FAppExcel.Visible := True;
+    FAppExcel.ScreenUpdating := True;
+    FAppExcel.DisplayAlerts := True;
+    txtThreadsMax.Enabled := True;
+    txtUpdateInterval.Enabled := True;
+    chkVisual.Enabled := True;
+    chkUpdate.Enabled := True;
+    cmdConnect.Enabled := True;
+    cmdGetData.Enabled := True;
+    cmdConnectExcel.Enabled := True;
     Exit;
   end;
 
   // Получить данные из таблицы (ФИО и СНИЛС)
+  b := FAppExcel.ScreenUpdating;
+  if chkUpdate.Checked and (FUpdateInterval > 0) and
+      (j mod FUpdateInterval = 0) then
+    FAppExcel.ScreenUpdating := True;
   FSheet.Cells[j, FColumns[4]].Select;
   sSNILS := FSheet.Cells[j, FColumns[4]].Value;
   sSNILS := ReplaceStr(ReplaceStr(sSNILS, '-', ''), ' ', '');
+  if b <> FAppExcel.ScreenUpdating then
+    FAppExcel.ScreenUpdating := b;
 
-  for iRecsT := 0 to FlstTables.Count - 1 do
+  for iRecs := 0 to FlstTables.Count - 1 do
   begin
-    try
-      with _SQLQ.SQL do
-      begin
-        Clear;
-        Add('SELECT TOP (100) [ID], [FAMIL], [IMJA], [OTCH], ' +
-            'FORMAT([DROG], ''dd.MM.yyyy'') as DROG, [POL], ' +
-            'REPLACE(REPLACE(NPS, ''-'', ''''), '' '', '''') AS NPS,[pku]');
-        Add('FROM [' + FlstTables.Strings[iRecsT] + '].[dbo].[F2]');
-        Add('WHERE REPLACE(REPLACE(NPS, ''-'', ''''), '' '', '''') = ' +
-            QuotedStr(sSNILS));
-      end;
-      _SQLQ.Open;
-      if _SQLQ.RecordCount <= 0 then
-        FSheet.Cells[j, FColumns[5] + iRecsT].Value := 'СНИЛС не найден'
-      else
-      begin
-        sMsg := '';
-        for iRecsQ := 1 to _SQLQ.RecordCount do
-        begin
-          _SQLQ.RecNo := iRecsQ;
-
-          // Сделаем небольшой анализ на совпадение ФИО (буквы е/ё не учитываем)
-          sFa1 := AnsiLowerCase(FSheet.Cells[j, FColumns[0]].Value);
-          sIm1 := AnsiLowerCase(FSheet.Cells[j, FColumns[1]].Value);
-          sOt1 := AnsiLowerCase(FSheet.Cells[j, FColumns[2]].Value);
-
-          sFa2 := AnsiLowerCase(_SQLQ.FieldByName('FAMIL').AsString);
-          sIm2 := AnsiLowerCase(_SQLQ.FieldByName('IMJA').AsString);
-          sOt2 := AnsiLowerCase(_SQLQ.FieldByName('OTCH').AsString);
-
-          if sFa1 <> sFa2 then
-            sMsg := sMsg + '; ' + 'Фамилия в базе "' + sFa2 + '"';
-
-          if sIm1 <> sIm2 then
-            sMsg := sMsg + '; ' + 'Имя в базе "' + sIm2 + '"';
-
-          if sOt1 <> sOt2 then
-            sMsg := sMsg + '; ' + 'Отчество в базе "' + sOt2 + '"';
-
-          if FColumns[3] > 0 then
-          begin
-            // Для случая отсутствия ДР
-            sDR1 := FSheet.Cells[j, FColumns[3]].Value;
-            sDR2 := AnsiLowerCase(_SQLQ.FieldByName('DROG').AsString);
-
-            if sDR1 <> sDR2 then
-              sMsg := sMsg + '; ' + 'Дата рождения в базе "' + sDR2 + '"';
-          end;
-        end;
-
-        if LeftStr(sMsg, 2) = '; ' then
-          Delete(sMsg, 1, 2);
-
-        FSheet.Cells[j, FColumns[5] + iRecsT].Value := 'В базе ' +
-            ' найден СНИЛС ' + sSNILS + '.' +
-            IfThen(sMsg <> '', ' Но: ' + sMsg);
-      end;
-    except
-      on E: Exception do
-        log := 'Ошибка для ' + FlstTables.Strings[iRecsT] + ': ' + E.Message;
-    end;
+    TMyThreadQuery.Create(_SQLC, FlstTables.Strings[iRecs], sSNILS,
+        UpdateSheetAfterQuery, j, FColumns[5] + iRecs, memLog.Lines);
+    Inc(FThreadsRunning);
   end;
   Dec(j);
   timCallThread.Tag := j;
@@ -614,6 +631,106 @@ end;
 procedure TfrmCPD.txtChange(Sender: TObject);
 begin
   MozhnoZayti(Sender);
+end;
+
+procedure TfrmCPD.txtThreadsMaxChange(Sender: TObject);
+var
+  j: Integer;
+begin
+  j := StrToIntDef(txtThreadsMax.Text, FThreadsMaximum);
+  if j < 0 then
+    j := 0;
+  if j > 64 then
+    j := 64;
+  if j <> FThreadsMaximum then
+  begin
+    FThreadsMaximum := j;
+    txtThreadsMax.Text := IntToStr(j);
+  end;
+end;
+
+procedure TfrmCPD.txtUpdateIntervalChange(Sender: TObject);
+var
+  j: Integer;
+begin
+  j := StrToIntDef(txtUpdateInterval.Text, FUpdateInterval);
+  if j < 0 then
+    j := 0;
+  if j > MAXSHORT then
+    j := MAXSHORT;
+  if j <> FUpdateInterval then
+  begin
+    FUpdateInterval := j;
+    txtUpdateInterval.Text := IntToStr(j);
+  end;
+end;
+
+procedure TfrmCPD.UpdateSheetAfterQuery(Sender: TObject);
+var
+  thr: TMyThreadQuery;
+  q: TADOQuery;
+  iRecs: Integer;
+  sFa1, sIm1, sOt1, sDR1, sFa2, sIm2, sOt2, sDR2: string;
+  sMsg: string;
+begin
+  // Получить данные с сервера (ФИО и СНИЛС)
+  try
+    thr := Sender as TMyThreadQuery;
+    q := thr.oSQLQ;
+    if q.Active then
+      try
+        if q.RecordCount <= 0 then
+          FSheet.Cells[thr.iRow, thr.iCol].Value := 'СНИЛС не найден'
+        else
+        begin
+          sMsg := '';
+          for iRecs := 1 to q.RecordCount do
+          begin
+            q.RecNo := iRecs;
+
+            // Сделаем небольшой анализ на совпадение ФИО (буквы е/ё не учитываем)
+            sFa1 := AnsiLowerCase(FSheet.Cells[thr.iRow, FColumns[0]].Value);
+            sIm1 := AnsiLowerCase(FSheet.Cells[thr.iRow, FColumns[1]].Value);
+            sOt1 := AnsiLowerCase(FSheet.Cells[thr.iRow, FColumns[2]].Value);
+
+            sFa2 := AnsiLowerCase(q.FieldByName('FAMIL').AsString);
+            sIm2 := AnsiLowerCase(q.FieldByName('IMJA').AsString);
+            sOt2 := AnsiLowerCase(q.FieldByName('OTCH').AsString);
+
+            if sFa1 <> sFa2 then
+              sMsg := sMsg + '; ' + 'Фамилия в базе "' + sFa2 + '"';
+
+            if sIm1 <> sIm2 then
+              sMsg := sMsg + '; ' + 'Имя в базе "' + sIm2 + '"';
+
+            if sOt1 <> sOt2 then
+              sMsg := sMsg + '; ' + 'Отчество в базе "' + sOt2 + '"';
+
+            if FColumns[3] > 0 then
+            begin
+              // Для случая отсутствия ДР
+              sDR1 := FSheet.Cells[thr.iRow, FColumns[3]].Value;
+              sDR2 := AnsiLowerCase(q.FieldByName('DROG').AsString);
+
+              if sDR1 <> sDR2 then
+                sMsg := sMsg + '; ' + 'Дата рождения в базе "' + sDR2 + '"';
+            end;
+          end;
+          if LeftStr(sMsg, 2) = '; ' then
+            Delete(sMsg, 1, 2);
+
+          FSheet.Cells[thr.iRow, thr.iCol].Value := 'В базе ' +
+              ' найден СНИЛС ' + thr.sSNILS + '.' +
+              IfThen(sMsg <> '', ' Но: ' + sMsg);
+        end;
+      finally
+        q.Close;
+      end;
+  except
+    on E: Exception do
+      log := E.Message;
+  end;
+  Dec(FThreadsRunning);
 end;
 
 end.

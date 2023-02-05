@@ -1,9 +1,11 @@
 object frmCPD: TfrmCPD
   Left = 0
   Top = 0
+  BorderIcons = [biSystemMenu, biMinimize]
+  BorderStyle = bsSingle
   Caption = #1055#1088#1086#1074#1077#1088#1080#1090#1100' '#1083#1102#1076#1077#1081' '#1074' '#1073#1072#1079#1077' '#1040#1057#1055
   ClientHeight = 492
-  ClientWidth = 523
+  ClientWidth = 525
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -600,7 +602,7 @@ object frmCPD: TfrmCPD
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   DesignSize = (
-    523
+    525
     492)
   PixelsPerInch = 96
   TextHeight = 13
@@ -678,7 +680,7 @@ object frmCPD: TfrmCPD
   object memLog: TMemo
     Left = 0
     Top = 351
-    Width = 523
+    Width = 525
     Height = 141
     Align = alBottom
     Lines.Strings = (
@@ -686,7 +688,7 @@ object frmCPD: TfrmCPD
     ReadOnly = True
     ScrollBars = ssVertical
     TabOrder = 2
-    ExplicitWidth = 705
+    ExplicitWidth = 523
   end
   object cmdGetData: TButton
     Left = 367
@@ -727,6 +729,80 @@ object frmCPD: TfrmCPD
       Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goColSizing, goRowSelect]
       PopupMenu = _pm
       TabOrder = 0
+    end
+  end
+  object grpOptions: TGroupBox
+    Left = 367
+    Top = 68
+    Width = 150
+    Height = 275
+    Anchors = [akLeft, akTop, akBottom]
+    Caption = #1053#1072#1089#1090#1088#1086#1081#1082#1080' '#1086#1087#1090#1080#1084#1080#1079#1072#1094#1080#1080':'
+    TabOrder = 6
+    DesignSize = (
+      150
+      275)
+    object chkVisual: TCheckBox
+      Left = 4
+      Top = 68
+      Width = 140
+      Height = 17
+      Hint = 
+        #1042#1086' '#1074#1088#1077#1084#1103' '#1088#1072#1073#1086#1090#1099' '#1087#1088#1103#1095#1077#1084' Excel ('#1087#1086#1083#1085#1072#1103' '#1088#1072#1073#1086#1090#1072' '#1074' '#1089#1082#1088#1099#1090#1086#1084' '#1088#1077#1078#1080#1084#1077' '#1091#1089#1082 +
+        #1086#1088#1103#1077#1090' '#1088#1072#1073#1086#1090#1091')'
+      Anchors = [akLeft, akTop, akRight]
+      Caption = #1054#1090#1086#1073#1088#1072#1078#1077#1085#1080#1077' Excel'
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 0
+    end
+    object chkUpdate: TCheckBox
+      Left = 4
+      Top = 92
+      Width = 140
+      Height = 17
+      Hint = 
+        #1054#1073#1085#1086#1074#1083#1077#1085#1080#1077' '#1101#1082#1088#1072#1085#1072' '#1087#1088#1080#1083#1086#1078#1077#1085#1080#1103' '#1087#1088#1080' '#1080#1079#1084#1077#1085#1077#1085#1080#1080' '#1076#1072#1085#1085#1099#1093'. '#1045#1089#1083#1080' '#1074#1082#1083#1102#1095#1077#1085',' +
+        ' '#1090#1086' '#1074#1080#1076#1085#1086' '#1074#1089#1105' '#1089' '#1080#1085#1090#1077#1088#1074#1072#1083#1086#1084' '#1091#1082#1072#1079#1072#1085#1085#1099#1084' '#1085#1080#1078#1077
+      Anchors = [akLeft, akTop, akRight]
+      Caption = #1054#1073#1085#1086#1074#1083#1077#1085#1080#1077' Excel'
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 1
+    end
+    object txtThreadsMax: TLabeledEdit
+      Left = 4
+      Top = 36
+      Width = 140
+      Height = 21
+      Hint = 
+        #1052#1072#1082#1089#1080#1084#1072#1083#1100#1085#1086#1077' '#1095#1080#1089#1083#1086' '#1087#1086#1090#1086#1082#1086#1074', '#1082#1086#1090#1086#1088#1086#1077' '#1088#1072#1073#1086#1090#1072#1077#1090' '#1086#1076#1085#1086#1074#1088#1077#1084#1077#1085#1085#1086' '#1076#1083#1103' '#1082#1072 +
+        #1078#1076#1086#1081' '#1073#1072#1079#1099' (0 - '#1085#1077' '#1086#1075#1088#1072#1085#1080#1095#1080#1074#1072#1090#1100')'
+      Anchors = [akLeft, akTop, akRight]
+      EditLabel.Width = 121
+      EditLabel.Height = 13
+      EditLabel.Caption = #1050#1086#1083'-'#1074#1086' '#1087#1086#1090#1086#1082#1086#1074' '#1085#1072' '#1073#1072#1079#1091
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 2
+      OnChange = txtThreadsMaxChange
+    end
+    object txtUpdateInterval: TLabeledEdit
+      Left = 4
+      Top = 132
+      Width = 140
+      Height = 21
+      Hint = 
+        #1063#1077#1088#1077#1079' '#1089#1082#1086#1083#1100#1082#1086' '#1089#1090#1088#1086#1082' '#1087#1088#1086#1080#1089#1093#1086#1076#1080#1090' '#1086#1073#1085#1086#1074#1083#1077#1085#1080#1077' '#1101#1082#1088#1072#1085#1072' Excel (0 - '#1085#1077' '#1086 +
+        #1073#1085#1086#1074#1083#1103#1090#1100')'
+      Anchors = [akLeft, akTop, akRight]
+      EditLabel.Width = 130
+      EditLabel.Height = 13
+      EditLabel.Caption = #1050#1086#1083'-'#1074#1086' '#1089#1090#1088#1086#1082' '#1086#1073#1085#1086#1074#1083#1077#1085#1080#1103
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 3
+      OnChange = txtUpdateIntervalChange
     end
   end
   object _ds: TDataSource

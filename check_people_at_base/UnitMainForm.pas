@@ -715,6 +715,10 @@ begin
               if sDR1 <> sDR2 then
                 sMsg := sMsg + '; ' + 'Дата рождения в базе "' + sDR2 + '"';
             end;
+
+            if thr.sMsg <> '' then
+              // Добавить сообщение из потока (инфо по заявке)
+              sMsg := sMsg + '; ' + thr.sMsg;
           end;
           if LeftStr(sMsg, 2) = '; ' then
             Delete(sMsg, 1, 2);

@@ -688,7 +688,6 @@ object frmCPD: TfrmCPD
     ReadOnly = True
     ScrollBars = ssVertical
     TabOrder = 2
-    ExplicitWidth = 523
   end
   object cmdGetData: TButton
     Left = 367
@@ -735,13 +734,13 @@ object frmCPD: TfrmCPD
     Left = 367
     Top = 68
     Width = 150
-    Height = 275
+    Height = 165
     Anchors = [akLeft, akTop, akBottom]
     Caption = #1053#1072#1089#1090#1088#1086#1081#1082#1080' '#1086#1087#1090#1080#1084#1080#1079#1072#1094#1080#1080':'
     TabOrder = 6
     DesignSize = (
       150
-      275)
+      165)
     object chkVisual: TCheckBox
       Left = 4
       Top = 68

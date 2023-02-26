@@ -73,3 +73,8 @@ Win32/
 Win64/
 *.rar
 *.zip
+.vs/
+Debug/
+Release/
+bin/
+obj/

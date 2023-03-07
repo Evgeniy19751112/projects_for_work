@@ -1,0 +1,36 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{1782D3BE-325A-41FD-8282-5CFBEDA3469A}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="auto_send_report.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="auto_send_report">
+        <MSBuild Projects="auto_send_report.dproj"/>
+    </Target>
+    <Target Name="auto_send_report:Clean">
+        <MSBuild Projects="auto_send_report.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="auto_send_report:Make">
+        <MSBuild Projects="auto_send_report.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="auto_send_report"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="auto_send_report:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="auto_send_report:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

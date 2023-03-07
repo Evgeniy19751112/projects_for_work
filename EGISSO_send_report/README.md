@@ -10,3 +10,5 @@
 Для связи с автором пишите на etyavkin@mail.ru для Тявкина Евгения Николаевича.
 
 Создано в "Embarcadero RAD Studio XE7\Delphi XE7"
+
+Исполнимый файл тут: https://disk.yandex.ru/d/ywbB9tveoX3urg в файле auto_send_report.rar

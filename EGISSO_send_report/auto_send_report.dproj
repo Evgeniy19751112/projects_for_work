@@ -93,8 +93,8 @@
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2_Win32)'!=''">
         <Debugger_RunParams>auto</Debugger_RunParams>
-        <VerInfo_Keys>CompanyName=ГКУ АО УСЗН по г.Тында и Тындинскому м.о.;FileDescription=;FileVersion=1.0.0.4;InternalName=;LegalCopyright=Тявкин Евгений Николаевич. Тында. 2023 год;LegalTrademarks=;OriginalFilename=EGISSO_send_report;ProductName=EGISSO: auto send report;ProductVersion=1.0;Comments=Сделано по собственной инициативе с целью снижения затрат времени на рутину</VerInfo_Keys>
-        <VerInfo_Build>4</VerInfo_Build>
+        <VerInfo_Keys>CompanyName=ГКУ АО УСЗН по г.Тында и Тындинскому м.о.;FileDescription=;FileVersion=1.0.0.5;InternalName=;LegalCopyright=Тявкин Евгений Николаевич. Тында. 2023 год;LegalTrademarks=;OriginalFilename=EGISSO_send_report;ProductName=EGISSO: auto send report;ProductVersion=1.0;Comments=Сделано по собственной инициативе с целью снижения затрат времени на рутину</VerInfo_Keys>
+        <VerInfo_Build>5</VerInfo_Build>
     </PropertyGroup>
     <ItemGroup>
         <DelphiCompile Include="$(MainSource)">
